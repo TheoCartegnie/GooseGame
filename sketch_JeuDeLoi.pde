@@ -27,10 +27,7 @@ final int skull = 58;
 final int SCREENSIZEX = 1920;
 final int SCREENSIZEY = 1080;
 
-void draw ()
-{
-}
-
+////INIT
 
 void setup()
 {
@@ -39,13 +36,74 @@ void setup()
   rectMode(CENTER);
 
   InitGrid();
+  InitPlayer();
   DisplayGrid();
   DisplayPlayer(CurrentPlayerID);
 }
 
+
+///MAIN LOOP
+void draw ()
+{
+}
+
+
+void mouseClicked()
+{
+  if(IsPlaying)
+  PlayTurn();
+  
+  
+}
+
+
+void PlayTurn()
+{
+  int D1 = ThrowDice();
+  int D2 = ThrowDice();
+  int total = D1 + D2;
+
+  CheckDice(D1, D2);
+
+
+  
+  if (PlayerCanMove[CurrentPlayerID])
+  {
+    PlayerPosition[CurrentPlayerID][POSITION] += total;
+  } 
+  else
+  {
+    GetNextPlayer();
+  }
+
+  CheckMove();
+  CheckSpecialCase();
+  CheckPlayerOnSameCases();
+  CallMovePlayer();
+  
+  if(CheckWinCondition())
+  {
+    DrawWinRect();
+  }
+  
+  
+  
+  GetNextPlayer();
+
+
+}
+
+
+public void InitPlayer()
+{
+  for(int i = 0; i < 4; i++)
+  {
+    DisplayPlayer(i);
+  }
+}
+
 public boolean CheckDice(int D1, int D2)
 {
-  println("TEST");
   if ((D1 == 3 && D2 == 6) || (D1 == 6 && D2 == 3))
   {
     PlayerPosition[CurrentPlayerID][POSITION] = 26 -1;
@@ -66,11 +124,11 @@ public boolean CheckDice(int D1, int D2)
 }
 
 
-
-public boolean CheckSpecialCase(int _case)
+/////////////////SPECIALE CASE
+public boolean CheckSpecialCase()
 {
   String str = "Player " + CurrentPlayerID + " is on : ";
-  switch(_case)
+  switch(PlayerPosition[CurrentPlayerID][POSITION])
   {
   case puits :
     OnPuis();
@@ -124,7 +182,7 @@ void OnHotel()
 void HotelEffect()
 {
   PlayerPosition[CurrentPlayerID][POSITION]++;
-  MovePlayer();
+  MovePlayers();
   TurnOnHostel[CurrentPlayerID] = 0;
 }
 
@@ -157,70 +215,8 @@ void OnPuis()
   }
 }
 
-void mouseClicked()
-{
-  if(IsPlaying)
-  PlayTurn();
-  
-  
-}
 
-
-void PlayTurn()
-{
-  int D1 = ThrowDice();
-  int D2 = ThrowDice();
-  int total = D1 + D2;
-
-  CheckDice(D1, D2);
-
-
-  
-  if (PlayerCanMove[CurrentPlayerID])
-  {
-    PlayerPosition[CurrentPlayerID][POSITION] += total;
-  } 
-  else
-  {
-    GetNextPlayer();
-  }
-
-  Move();
-  CheckSpecialCase(PlayerPosition[CurrentPlayerID][POSITION]);
-  CheckPlayerOnSameCases();
-  
-  
-  if(CheckWinCondition())
-  {
-    DrawWinRect();
-  }
-  
-  
-  
-  GetNextPlayer();
-
-
-}
-
-void GetNextPlayer()
-{
-  
-  CurrentPlayerID++;
-  if (CurrentPlayerID > 3)
-  {
-    CurrentPlayerID = 0;
-  }
-}
-
-
-void CheckPlayerOnSameCases()
-{
-  int PlayerOnSameCase = WichPlayerOnSameCase();
-  if (PlayerOnSameCase != -1)
-  {
-    PlayerPosition[PlayerOnSameCase][POSITION] = PlayerPosition[CurrentPlayerID][LASTPOSITION];
-  }
-}
+///UTILITIES
 
 int ThrowDice()
 {
@@ -235,21 +231,18 @@ void InitGrid() {
 }
 
 
-void Move()
+void GetNextPlayer()
 {
-
-  if (PlayerPosition[CurrentPlayerID][POSITION] > 62)
+  
+  CurrentPlayerID++;
+  if (CurrentPlayerID > 3)
   {
-    int Diff = PlayerPosition[CurrentPlayerID][POSITION] - 62;
-    PlayerPosition[CurrentPlayerID][POSITION] = 62 - Diff;
-    MovePlayer();
-  } 
-  else
-  {
-    MovePlayer();
+    CurrentPlayerID = 0;
   }
-  PlayerPosition[CurrentPlayerID][LASTPOSITION] = PlayerPosition[CurrentPlayerID][POSITION];
 }
+
+
+//CHECKING
 
 boolean CheckWinCondition()
 {
@@ -260,6 +253,61 @@ boolean CheckWinCondition()
    }
    return false;
 }
+
+
+int WichPlayerOnSameCase()
+{
+  for (int i = 0; i < PlayerPosition.length; i++)
+  {
+    if (i != CurrentPlayerID)
+    {
+      if (PlayerPosition[CurrentPlayerID][POSITION] == PlayerPosition[i][POSITION])
+      {
+        println(i ," Est a la meme case que ", CurrentPlayerID);
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
+
+void CheckPlayerOnSameCases()
+{
+  int PlayerOnSameCase = WichPlayerOnSameCase();
+  if (PlayerOnSameCase != -1)
+  {
+    println("Current positon : ",PlayerPosition[PlayerOnSameCase][POSITION]," ",PlayerPosition[CurrentPlayerID][LASTPOSITION]);
+    PlayerPosition[PlayerOnSameCase][POSITION] = PlayerPosition[CurrentPlayerID][LASTPOSITION];
+    MovePlayers();
+  }
+}
+
+
+
+
+
+void CheckMove()
+{
+
+  if (PlayerPosition[CurrentPlayerID][POSITION] > 62)
+  {
+    int Diff = PlayerPosition[CurrentPlayerID][POSITION] - 62;
+    PlayerPosition[CurrentPlayerID][POSITION] = 62 - Diff;
+  } 
+
+}
+
+void CallMovePlayer()
+{
+   MovePlayers();
+   for(int i = 0; i < 4 ; i++)
+   {
+     PlayerPosition[i][LASTPOSITION] = PlayerPosition[i][POSITION];
+   }
+}
+
+
 
 
 void DrawWinRect()
@@ -282,26 +330,33 @@ void BlockPlayer(int PlayerID)
   PlayerCanMove[PlayerID] = false;
 }
 
-void MovePlayer()
+void MovePlayers()
+{
+  for(int i = 0; i < PlayerPosition.length; i++)
+  {
+   MovePlayer(i); 
+  }
+}
+
+
+void MovePlayer(int ID)
 {
  
-  if (CurrentPlayerID == 0)
+  if (ID == 0)
   {
-    DisplayCase(PlayerPosition[CurrentPlayerID][LASTPOSITION], CurrentPlayerID, EmptyCase, false);
-    DisplayCaseNumber(PlayerPosition[CurrentPlayerID][LASTPOSITION], PlayerPosition[CurrentPlayerID][LASTPOSITION]+1);
+    DisplayCase(PlayerPosition[ID][LASTPOSITION], ID, EmptyCase, false);
+    DisplayCaseNumber(PlayerPosition[ID][LASTPOSITION], PlayerPosition[ID][LASTPOSITION]+1);
   } else
   {
-    DisplayCase(PlayerPosition[CurrentPlayerID][LASTPOSITION], CurrentPlayerID, Background, false);
+    DisplayCase(PlayerPosition[ID][LASTPOSITION], ID, Background, false);
   }
-  DisplayPlayer(CurrentPlayerID);
+  DisplayPlayer(ID);
 
 }
 
 void DisplayPlayer(int PlayerID)
 {
-
-  DisplayCase(PlayerPosition[PlayerID][POSITION], CurrentPlayerID, GetPlayerColor(CurrentPlayerID), false);
-  println("Le joueur : ", PlayerID, " est a la position : ", PlayerPosition[PlayerID][POSITION]);
+  DisplayCase(PlayerPosition[PlayerID][POSITION], PlayerID, GetPlayerColor(PlayerID), false);
 }
 
 void DisplayGrid()
@@ -314,20 +369,7 @@ void DisplayGrid()
 }
 
 
-int WichPlayerOnSameCase()
-{
-  for (int i = 0; i < PlayerPosition.length; i++)
-  {
-    if (i != CurrentPlayerID)
-    {
-      if (PlayerPosition[CurrentPlayerID] == PlayerPosition[i])
-      {
-        return i;
-      }
-    }
-  }
-  return -1;
-}
+
 
 void DisplayCaseNumber(int caseID, int NumberDisplayed)
 {
